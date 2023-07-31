@@ -1,4 +1,4 @@
-LDFLAG=-lusb-1.0 -pthread -ljsoncpp
+LDFLAG=-lusb-1.0 -pthread -ljsoncpp -Lthird-party/CppGPIO -lcppgpio
 
 ifndef CFLAGS
 	ifeq ($(TARGET),Debug)
@@ -10,6 +10,10 @@ endif
 
 .PHONY: all clean
 
+all:
+	(cd third-party/CppGPIO; $(MAKE))
+	($(MAKE) usb-proxy)
+
 usb-proxy: usb-proxy.o host-raw-gadget.o device-libusb.o proxy.o misc.o
 	g++ usb-proxy.o host-raw-gadget.o device-libusb.o proxy.o misc.o $(LDFLAG) -o usb-proxy
 
@@ -19,6 +23,7 @@ usb-proxy: usb-proxy.o host-raw-gadget.o device-libusb.o proxy.o misc.o
 %.o: %.cpp
 	g++ $(CFLAGS) -c $<
 
+
 clean:
-	-rm *.o
-	-rm usb-proxy
+	(cd third-party/CppGPIO; $(MAKE) clean; rm *.o; rm *.a; rm *.so*)
+	(rm *.o; rm usb-proxy)
