@@ -2,3 +2,5 @@
 font.hpp
 font.cpp
 .depend
+*.a
+*.so*
