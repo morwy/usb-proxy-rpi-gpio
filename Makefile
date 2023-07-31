@@ -1,3 +1,4 @@
+CFLAGS=-Ithird-party/CppGPIO/include
 LDFLAG=-lusb-1.0 -pthread -ljsoncpp -Lthird-party/CppGPIO -lcppgpio
 
 ifndef CFLAGS
@@ -14,8 +15,9 @@ all:
 	(cd third-party/CppGPIO; $(MAKE))
 	($(MAKE) usb-proxy)
 
+
 usb-proxy: usb-proxy.o host-raw-gadget.o device-libusb.o proxy.o misc.o
-	g++ usb-proxy.o host-raw-gadget.o device-libusb.o proxy.o misc.o $(LDFLAG) -o usb-proxy
+	g++ usb-proxy.o host-raw-gadget.o device-libusb.o proxy.o misc.o $(CFLAGS) $(LDFLAG) -o usb-proxy
 
 %.o: %.cpp %.h
 	g++ $(CFLAGS) -c $<
