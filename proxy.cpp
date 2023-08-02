@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <vector>
 #include <wiringPi.h>
 
@@ -11,6 +12,12 @@ std::string transfer_type = "control";
 enum class RuleType {
 	Default = 0,
 	RaspberryPiGpio = 1
+};
+
+enum class GpioRule {
+	AnyOf = 0,
+	AllOf = 1,
+	NoneOf = 2
 };
 
 enum class ByteReplacementType {
@@ -110,8 +117,32 @@ void injection(struct usb_raw_transfer_io &io, struct usb_endpoint_descriptor ep
 		}
 		else if(rule_type == RuleType::RaspberryPiGpio)
 		{
-			unsigned int gpio_index = rule["gpio_index"].asUInt();
-			const bool is_button_pressed = (digitalRead(gpio_index) == LOW);
+			// Consider "any_of" rule as default, if it is not set.
+			GpioRule gpio_rule = GpioRule::AnyOf;
+			if(rule.isMember("gpio_rule"))
+			{
+				gpio_rule = static_cast<GpioRule>(rule["gpio_rule"].asUInt());
+			}
+
+			bool is_button_pressed = false;
+			switch(gpio_rule) {
+			case GpioRule::AnyOf: {
+				is_button_pressed = std::any_of(rule["gpio_indexes"].begin(), rule["gpio_indexes"].end(), 
+									[](Json::Value& gpio_index){ return (digitalRead(gpio_index.asUInt()) == LOW); });
+				break;
+			}
+			case GpioRule::AllOf: {
+				is_button_pressed = std::all_of(rule["gpio_indexes"].begin(), rule["gpio_indexes"].end(), 
+									[](Json::Value& gpio_index){ return (digitalRead(gpio_index.asUInt()) == LOW); });
+				break;
+			}
+			case GpioRule::NoneOf: {
+				is_button_pressed = std::none_of(rule["gpio_indexes"].begin(), rule["gpio_indexes"].end(), 
+									[](Json::Value& gpio_index){ return (digitalRead(gpio_index.asUInt()) == LOW); });
+				break;
+			}
+			}
+			
 			if(!is_button_pressed)
 			{
 				continue;
@@ -135,7 +166,15 @@ void injection(struct usb_raw_transfer_io &io, struct usb_endpoint_descriptor ep
 					continue;
 				}
 
-				printf("GPIO %d signal detected, modifying byte %d\n", gpio_index, index);
+				std::stringstream ss;
+				for (auto it = rule["gpio_indexes"].begin(); it != rule["gpio_indexes"].end(); it++) {
+					if (it != rule["gpio_indexes"].begin()) {
+						ss << " ";
+					}
+					ss << *it;
+				}
+
+				printf("GPIO %s signal detected, modifying byte %d\n", ss.str().c_str(), index);
 
 				switch(replacement_type) {
 				case ByteReplacementType::Replace: {
@@ -352,10 +391,14 @@ void process_eps(int fd, int config, int interface, int altsetting) {
 		if (injection_type != RuleType::RaspberryPiGpio)
 			continue;
 
-    	pinMode(rule["gpio_index"].asUInt(), INPUT);
-    	pullUpDnControl(rule["gpio_index"].asUInt(), PUD_UP);
+		for (unsigned int h = 0; h < rule["gpio_indexes"].size(); h++) {
+			const unsigned int gpio_index = rule["gpio_indexes"][h].asUInt();
 
-		printf("wiringPi: activated pin %d as input\n", rule["gpio_index"].asUInt());
+			pinMode(gpio_index, INPUT);
+			pullUpDnControl(gpio_index, PUD_UP);
+
+			printf("wiringPi: activated pin %d as input\n", gpio_index);
+		}
 	}
 
 	printf("process_eps done\n");

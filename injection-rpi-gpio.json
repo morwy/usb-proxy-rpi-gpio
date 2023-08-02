@@ -10,7 +10,8 @@
             "enable": true,
 			"type": 1,
 			"comment" : "rt",
-			"gpio_index": 23,
+			"gpio_indexes": [ 23 ],
+			"gpio_rule" : 0,
 			"byte_replacement_type": 1,
 			"byte_replacements" : [
 				{
@@ -24,7 +25,8 @@
             "enable": true,
 			"type": 1,
 			"comment" : "lt",
-			"gpio_index": 24,
+			"gpio_indexes": [ 24 ],
+			"gpio_rule" : 0,
 			"byte_replacement_type": 1,
 			"byte_replacements" : [
 				{
@@ -38,7 +40,8 @@
             "enable": true,
 			"type": 1,
 			"comment" : "dpad-down",
-			"gpio_index": 6,
+			"gpio_indexes": [ 6 ],
+			"gpio_rule" : 0,
 			"byte_replacement_type": 0,
 			"byte_replacements" : [
 				{
@@ -52,7 +55,8 @@
             "enable": true,
 			"type": 1,
 			"comment" : "dpad-up",
-			"gpio_index": 13,
+			"gpio_indexes": [ 13 ],
+			"gpio_rule" : 0,
 			"byte_replacement_type": 0,
 			"byte_replacements" : [
 				{
@@ -66,7 +70,8 @@
             "enable": true,
 			"type": 1,
 			"comment" : "dpad-left",
-			"gpio_index": 19,
+			"gpio_indexes": [ 19 ],
+			"gpio_rule" : 0,
 			"byte_replacement_type": 0,
 			"byte_replacements" : [
 				{
@@ -80,7 +85,8 @@
             "enable": true,
 			"type": 1,
 			"comment" : "dpad-right",
-			"gpio_index": 26,
+			"gpio_indexes": [ 26 ],
+			"gpio_rule" : 0,
 			"byte_replacement_type": 0,
 			"byte_replacements" : [
 				{
