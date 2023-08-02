@@ -1,0 +1,65 @@
+{
+	"control": {
+		"modify": [],
+		"ignore": [],
+		"stall": []
+	},
+	"int": [
+		{
+            "ep_address": 82,
+            "enable": true,
+			"type": 1,
+			"comment" : "rt",
+			"gpio_index": 23,
+			"replacement_byte_index": 11,
+			"replacement_byte_content": 2
+        },
+		{
+            "ep_address": 82,
+            "enable": true,
+			"type": 1,
+			"comment" : "lt",
+			"gpio_index": 24,
+			"replacement_byte_index": 11,
+			"replacement_byte_content": 1
+        },
+		{
+            "ep_address": 82,
+            "enable": true,
+			"type": 1,
+			"comment" : "dpad-down",
+			"gpio_index": 6,
+			"replacement_byte_index": 14,
+			"replacement_byte_content": 4
+        },
+		{
+            "ep_address": 82,
+            "enable": true,
+			"type": 1,
+			"comment" : "dpad-up",
+			"gpio_index": 13,
+			"replacement_byte_index": 14,
+			"replacement_byte_content": 0
+        },
+		{
+            "ep_address": 82,
+            "enable": true,
+			"type": 1,
+			"comment" : "dpad-left",
+			"gpio_index": 19,
+			"replacement_byte_index": 14,
+			"replacement_byte_content": 6
+        },
+		{
+            "ep_address": 82,
+            "enable": true,
+			"type": 1,
+			"comment" : "dpad-right",
+			"gpio_index": 26,
+			"replacement_byte_index": 14,
+			"replacement_byte_content": 2
+        }
+	],
+	"bulk": [],
+	"isoc": []
+}
