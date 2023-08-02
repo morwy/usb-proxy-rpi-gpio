@@ -8,9 +8,14 @@
 std::vector<std::string> injection_type{"modify", "ignore", "stall"};
 std::string transfer_type = "control";
 
-enum class InjectionType {
+enum class RuleType {
 	Default = 0,
 	RaspberryPiGpio = 1
+};
+
+enum class ByteReplacementType {
+	Replace = 0,
+	BitwiseOr = 1
 };
 
 void injection(struct usb_raw_transfer_io &io, Json::Value patterns, std::string replacement_hex, bool &data_modified) {
@@ -86,13 +91,13 @@ void injection(struct usb_raw_transfer_io &io, struct usb_endpoint_descriptor ep
 			continue;
 
 		// Backwards compatibility: "type" might not exist, use default if "type" is missing.
-		InjectionType modify_type = InjectionType::Default;
+		RuleType rule_type = RuleType::Default;
 		if(rule.isMember("type"))
 		{
-			modify_type = static_cast<InjectionType>(rule["type"].asUInt());
+			rule_type = static_cast<RuleType>(rule["type"].asUInt());
 		}
 
-		if(modify_type == InjectionType::Default)
+		if(rule_type == RuleType::Default)
 		{
 			Json::Value patterns = rule["content_pattern"];
 			std::string replacement_hex = rule["replacement"].asString();
@@ -103,13 +108,20 @@ void injection(struct usb_raw_transfer_io &io, struct usb_endpoint_descriptor ep
 			if (data_modified)
 				break;
 		}
-		else if(modify_type == InjectionType::RaspberryPiGpio)
+		else if(rule_type == RuleType::RaspberryPiGpio)
 		{
 			unsigned int gpio_index = rule["gpio_index"].asUInt();
 			const bool is_button_pressed = (digitalRead(gpio_index) == LOW);
 			if(!is_button_pressed)
 			{
 				continue;
+			}
+
+			// Consider "replace" type as default, if it is not set.
+			ByteReplacementType replacement_type = ByteReplacementType::Replace;
+			if(rule.isMember("byte_replacement_type"))
+			{
+				replacement_type = static_cast<ByteReplacementType>(rule["byte_replacement_type"].asUInt());
 			}
 
 			for (unsigned int j = 0; j < rule["byte_replacements"].size(); j++) {
@@ -125,7 +137,16 @@ void injection(struct usb_raw_transfer_io &io, struct usb_endpoint_descriptor ep
 
 				printf("GPIO %d signal detected, modifying byte %d\n", gpio_index, index);
 
-				io.data[index] = io.data[index] | char(value);
+				switch(replacement_type) {
+				case ByteReplacementType::Replace: {
+					io.data[index] = char(value);
+					break;
+				}
+				case ByteReplacementType::BitwiseOr: {
+					io.data[index] = io.data[index] | char(value);
+					break;
+				}
+				}
 			}
 		}
 	}
@@ -327,8 +348,8 @@ void process_eps(int fd, int config, int interface, int altsetting) {
 		if (rule["enable"].asBool() != true)
 			continue;
 
-		const InjectionType injection_type = static_cast<InjectionType>(rule["type"].asUInt());
-		if (injection_type != InjectionType::RaspberryPiGpio)
+		const RuleType injection_type = static_cast<RuleType>(rule["type"].asUInt());
+		if (injection_type != RuleType::RaspberryPiGpio)
 			continue;
 
     	pinMode(rule["gpio_index"].asUInt(), INPUT);
