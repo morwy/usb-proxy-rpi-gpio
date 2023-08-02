@@ -11,8 +11,12 @@
 			"type": 1,
 			"comment" : "rt",
 			"gpio_index": 23,
-			"replacement_byte_index": 11,
-			"replacement_byte_content": 2
+			"byte_replacements" : [
+				{
+					"index" : 11,
+					"value" : 2
+				}
+			]
         },
 		{
             "ep_address": 82,
@@ -20,8 +24,12 @@
 			"type": 1,
 			"comment" : "lt",
 			"gpio_index": 24,
-			"replacement_byte_index": 11,
-			"replacement_byte_content": 1
+			"byte_replacements" : [
+				{
+					"index" : 11,
+					"value" : 1
+				}
+			]
         },
 		{
             "ep_address": 82,
@@ -29,8 +37,12 @@
 			"type": 1,
 			"comment" : "dpad-down",
 			"gpio_index": 6,
-			"replacement_byte_index": 14,
-			"replacement_byte_content": 4
+			"byte_replacements" : [
+				{
+					"index" : 14,
+					"value" : 4
+				}
+			]
         },
 		{
             "ep_address": 82,
@@ -38,8 +50,12 @@
 			"type": 1,
 			"comment" : "dpad-up",
 			"gpio_index": 13,
-			"replacement_byte_index": 14,
-			"replacement_byte_content": 0
+			"byte_replacements" : [
+				{
+					"index" : 14,
+					"value" : 0
+				}
+			]
         },
 		{
             "ep_address": 82,
@@ -47,8 +63,12 @@
 			"type": 1,
 			"comment" : "dpad-left",
 			"gpio_index": 19,
-			"replacement_byte_index": 14,
-			"replacement_byte_content": 6
+			"byte_replacements" : [
+				{
+					"index" : 14,
+					"value" : 6
+				}
+			]
         },
 		{
             "ep_address": 82,
@@ -56,8 +76,12 @@
 			"type": 1,
 			"comment" : "dpad-right",
 			"gpio_index": 26,
-			"replacement_byte_index": 14,
-			"replacement_byte_content": 2
+			"byte_replacements" : [
+				{
+					"index" : 14,
+					"value" : 2
+				}
+			]
         }
 	],
 	"bulk": [],

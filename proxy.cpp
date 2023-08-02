@@ -85,7 +85,13 @@ void injection(struct usb_raw_transfer_io &io, struct usb_endpoint_descriptor ep
 		    hexToDecimal(rule["ep_address"].asInt()) != ep.bEndpointAddress)
 			continue;
 
-		const InjectionType modify_type = static_cast<InjectionType>(rule["type"].asUInt());
+		// Backwards compatibility: "type" might not exist, use default if "type" is missing.
+		InjectionType modify_type = InjectionType::Default;
+		if(rule.isMember("type"))
+		{
+			modify_type = static_cast<InjectionType>(rule["type"].asUInt());
+		}
+
 		if(modify_type == InjectionType::Default)
 		{
 			Json::Value patterns = rule["content_pattern"];
@@ -100,23 +106,27 @@ void injection(struct usb_raw_transfer_io &io, struct usb_endpoint_descriptor ep
 		else if(modify_type == InjectionType::RaspberryPiGpio)
 		{
 			unsigned int gpio_index = rule["gpio_index"].asUInt();
-			unsigned int replacement_byte_index = rule["replacement_byte_index"].asUInt();
-			unsigned int replacement_byte_content = rule["replacement_byte_content"].asUInt();
-
-			if(replacement_byte_index >= io.inner.length)
-			{
-				continue;
-			}
-
 			const bool is_button_pressed = (digitalRead(gpio_index) == LOW);
 			if(!is_button_pressed)
 			{
 				continue;
 			}
 
-			printf("GPIO %d signal detected, modifying byte %d\n", gpio_index, replacement_byte_index);
+			for (unsigned int j = 0; j < rule["byte_replacements"].size(); j++) {
+				Json::Value byte_replacement_rule = rule["byte_replacements"][j];
 
-			io.data[replacement_byte_index] = io.data[replacement_byte_index] | char(replacement_byte_content);
+				unsigned int index = byte_replacement_rule["index"].asUInt();
+				unsigned int value = byte_replacement_rule["value"].asUInt();
+
+				if(index >= io.inner.length)
+				{
+					continue;
+				}
+
+				printf("GPIO %d signal detected, modifying byte %d\n", gpio_index, index);
+
+				io.data[index] = io.data[index] | char(value);
+			}
 		}
 	}
 }
