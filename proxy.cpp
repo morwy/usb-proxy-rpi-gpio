@@ -1,8 +1,17 @@
 #include <vector>
+#include <wiringPi.h>
 
 #include "host-raw-gadget.h"
 #include "device-libusb.h"
 #include "misc.h"
+
+std::vector<std::string> injection_type{"modify", "ignore", "stall"};
+std::string transfer_type = "control";
+
+enum class InjectionType {
+	Default = 0,
+	RaspberryPiGpio = 1
+};
 
 void injection(struct usb_raw_transfer_io &io, Json::Value patterns, std::string replacement_hex, bool &data_modified) {
 	std::string data(io.data, io.inner.length);
@@ -34,9 +43,6 @@ void injection(struct usb_raw_transfer_io &io, Json::Value patterns, std::string
 
 void injection(struct usb_raw_control_event &event, struct usb_raw_transfer_io &io, int &injection_flags) {
 	// This is just a simple injection function for control transfer.
-	std::vector<std::string> injection_type{"modify", "ignore", "stall"};
-	std::string transfer_type = "control";
-
 	for (unsigned int i = 0; i < injection_type.size(); i++) {
 		for (unsigned int j = 0; j < injection_config[transfer_type][injection_type[i]].size(); j++) {
 			Json::Value rule = injection_config[transfer_type][injection_type[i]][j];
@@ -79,14 +85,39 @@ void injection(struct usb_raw_transfer_io &io, struct usb_endpoint_descriptor ep
 		    hexToDecimal(rule["ep_address"].asInt()) != ep.bEndpointAddress)
 			continue;
 
-		Json::Value patterns = rule["content_pattern"];
-		std::string replacement_hex = rule["replacement"].asString();
-		bool data_modified = false;
+		const InjectionType modify_type = static_cast<InjectionType>(rule["type"].asUInt());
+		if(modify_type == InjectionType::Default)
+		{
+			Json::Value patterns = rule["content_pattern"];
+			std::string replacement_hex = rule["replacement"].asString();
+			bool data_modified = false;
 
-		injection(io, patterns, replacement_hex, data_modified);
+			injection(io, patterns, replacement_hex, data_modified);
 
-		if (data_modified)
-			break;
+			if (data_modified)
+				break;
+		}
+		else if(modify_type == InjectionType::RaspberryPiGpio)
+		{
+			unsigned int gpio_index = rule["gpio_index"].asUInt();
+			unsigned int replacement_byte_index = rule["replacement_byte_index"].asUInt();
+			unsigned int replacement_byte_content = rule["replacement_byte_content"].asUInt();
+
+			if(replacement_byte_index >= io.inner.length)
+			{
+				continue;
+			}
+
+			const bool is_button_pressed = (digitalRead(gpio_index) == LOW);
+			if(!is_button_pressed)
+			{
+				continue;
+			}
+
+			printf("GPIO %d signal detected, modifying byte %d\n", gpio_index, replacement_byte_index);
+
+			io.data[replacement_byte_index] = io.data[replacement_byte_index] | char(replacement_byte_content);
+		}
 	}
 }
 
@@ -277,6 +308,23 @@ void process_eps(int fd, int config, int interface, int altsetting) {
 			ep_loop_read, (void *)&ep->thread_info);
 		pthread_create(&ep->thread_write, 0,
 			ep_loop_write, (void *)&ep->thread_info);
+	}
+   
+	wiringPiSetupGpio();
+
+	for (unsigned int j = 0; j < injection_config[transfer_type][injection_type[0]].size(); j++) {
+		Json::Value rule = injection_config[transfer_type][injection_type[0]][j];
+		if (rule["enable"].asBool() != true)
+			continue;
+
+		const InjectionType injection_type = static_cast<InjectionType>(rule["type"].asUInt());
+		if (injection_type != InjectionType::RaspberryPiGpio)
+			continue;
+
+    	pinMode(rule["gpio_index"].asUInt(), INPUT);
+    	pullUpDnControl(rule["gpio_index"].asUInt(), PUD_UP);
+
+		printf("wiringPi: activated pin %d as input\n", rule["gpio_index"].asUInt());
 	}
 
 	printf("process_eps done\n");
