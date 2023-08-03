@@ -10,8 +10,7 @@
             "enable": true,
 			"type": 1,
 			"comment" : "rt",
-			"gpio_indexes": [ 23 ],
-			"gpio_rule" : 0,
+			"gpio_index": 23,
 			"byte_replacement_type": 1,
 			"byte_replacements" : [
 				{
@@ -25,8 +24,7 @@
             "enable": true,
 			"type": 1,
 			"comment" : "lt",
-			"gpio_indexes": [ 24 ],
-			"gpio_rule" : 0,
+			"gpio_index": 24,
 			"byte_replacement_type": 1,
 			"byte_replacements" : [
 				{
@@ -39,24 +37,8 @@
             "ep_address": 82,
             "enable": true,
 			"type": 1,
-			"comment" : "dpad-down",
-			"gpio_indexes": [ 6 ],
-			"gpio_rule" : 0,
-			"byte_replacement_type": 0,
-			"byte_replacements" : [
-				{
-					"index" : 14,
-					"value" : 4
-				}
-			]
-        },
-		{
-            "ep_address": 82,
-            "enable": true,
-			"type": 1,
 			"comment" : "dpad-up",
-			"gpio_indexes": [ 13 ],
-			"gpio_rule" : 0,
+			"gpio_index": 13,
 			"byte_replacement_type": 0,
 			"byte_replacements" : [
 				{
@@ -69,14 +51,13 @@
             "ep_address": 82,
             "enable": true,
 			"type": 1,
-			"comment" : "dpad-left",
-			"gpio_indexes": [ 19 ],
-			"gpio_rule" : 0,
+			"comment" : "dpad-right",
+			"gpio_index": 26,
 			"byte_replacement_type": 0,
 			"byte_replacements" : [
 				{
 					"index" : 14,
-					"value" : 6
+					"value" : 2
 				}
 			]
         },
@@ -84,14 +65,27 @@
             "ep_address": 82,
             "enable": true,
 			"type": 1,
-			"comment" : "dpad-right",
-			"gpio_indexes": [ 26 ],
-			"gpio_rule" : 0,
+			"comment" : "dpad-down",
+			"gpio_index": 6,
 			"byte_replacement_type": 0,
 			"byte_replacements" : [
 				{
 					"index" : 14,
-					"value" : 2
+					"value" : 4
+				}
+			]
+        },
+		{
+            "ep_address": 82,
+            "enable": true,
+			"type": 1,
+			"comment" : "dpad-left",
+			"gpio_index": 19,
+			"byte_replacement_type": 0,
+			"byte_replacements" : [
+				{
+					"index" : 14,
+					"value" : 6
 				}
 			]
         }
