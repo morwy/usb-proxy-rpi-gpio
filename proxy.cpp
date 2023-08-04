@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <set>
 #include <vector>
 #include <wiringPi.h>
 
@@ -10,6 +11,9 @@ std::vector<std::string> transfer_types{"control", "int", "bulk", "isoc"};
 std::vector<std::string> control_type{"modify", "ignore", "stall"};
 std::string transfer_type = "control";
 
+std::set<unsigned int> used_gpio_pins;
+std::map<unsigned char, struct usb_raw_transfer_io> last_messages;
+
 enum class RuleType {
 	Default = 0,
 	RaspberryPiGpio = 1
@@ -19,6 +23,13 @@ enum class ByteReplacementType {
 	Replace = 0,
 	BitwiseOr = 1
 };
+
+bool is_any_gpio_pin_triggered() 
+{
+	return std::any_of(used_gpio_pins.begin(), used_gpio_pins.end(), [](unsigned int gpio_index){ 
+		return (digitalRead(gpio_index) == LOW); 
+	});
+}
 
 void injection(struct usb_raw_transfer_io &io, Json::Value patterns, std::string replacement_hex, bool &data_modified) {
 	std::string data(io.data, io.inner.length);
@@ -192,7 +203,7 @@ void *ep_loop_write(void *arg) {
 
 		if (ep.bEndpointAddress & USB_DIR_IN) {
 			int rv = usb_raw_ep_write(fd, (struct usb_raw_ep_io *)&io);
-			if (rv >= 0) {
+			if (rv > 0) {
 				printf("EP%x(%s_%s): wrote %d bytes to host\n", ep.bEndpointAddress,
 					transfer_type.c_str(), dir.c_str(), rv);
 			}
@@ -229,19 +240,21 @@ void *ep_loop_read(void *arg) {
 	while (!please_stop_eps) {
 		assert(ep_num != -1);
 		struct usb_raw_transfer_io io;
-
+		
 		if (ep.bEndpointAddress & USB_DIR_IN) {
 			unsigned char *data = NULL;
 			int nbytes = -1;
 
 			if (data_queue->size() >= 32) {
-				usleep(200);
+				printf("EP%x(%s_%s): queue contains %lu, sleeping\n", ep.bEndpointAddress,
+						transfer_type.c_str(), dir.c_str(), data_queue->size());
+				usleep(100);
 				continue;
 			}
 
-			receive_data(ep.bEndpointAddress, ep.bmAttributes, ep.wMaxPacketSize, &data, &nbytes, 0);
+			receive_data(ep.bEndpointAddress, ep.bmAttributes, ep.wMaxPacketSize, &data, &nbytes, 20);
 
-			if (nbytes >= 0) {
+			if (nbytes > 0) {
 				memcpy(io.data, data, nbytes);
 				io.inner.ep = ep_num;
 				io.inner.flags = 0;
@@ -252,16 +265,35 @@ void *ep_loop_read(void *arg) {
 
 				data_mutex->lock();
 				data_queue->push_back(io);
+				last_messages[ep.bEndpointAddress] = io;
 				data_mutex->unlock();
+
 				if (verbose_level)
 					printf("EP%x(%s_%s): enqueued %d bytes to queue\n", ep.bEndpointAddress,
 							transfer_type.c_str(), dir.c_str(), nbytes);
 			}
 
+			if(is_any_gpio_pin_triggered() && last_messages.count(ep.bEndpointAddress) > 0)
+			{
+				struct usb_raw_transfer_io last_io = last_messages[ep.bEndpointAddress];
+
+				if (injection_enabled)
+					injection(last_io, ep, transfer_type);
+
+				data_mutex->lock();
+				data_queue->push_back(last_io);
+				data_mutex->unlock();
+
+				if (verbose_level)
+					printf("EP%x(%s_%s): artificially enqueued %d bytes to queue\n", ep.bEndpointAddress,
+							transfer_type.c_str(), dir.c_str(), last_io.inner.length);
+			}
+
 			if (data)
 				delete[] data;
 		}
-		else {
+		else 
+		{
 			io.inner.ep = ep_num;
 			io.inner.flags = 0;
 			io.inner.length = sizeof(io.data);
@@ -277,7 +309,9 @@ void *ep_loop_read(void *arg) {
 
 				data_mutex->lock();
 				data_queue->push_back(io);
+				last_messages[ep.bEndpointAddress] = io;
 				data_mutex->unlock();
+
 				if (verbose_level)
 					printf("EP%x(%s_%s): enqueued %d bytes to queue\n", ep.bEndpointAddress,
 							transfer_type.c_str(), dir.c_str(), rv);
@@ -361,6 +395,8 @@ void process_eps(int fd, int config, int interface, int altsetting) {
 		pullUpDnControl(gpio_index, PUD_UP);
 
 		printf("wiringPi: activated pin %d as input\n", gpio_index);
+
+		used_gpio_pins.insert(gpio_index);
 	}
 
 	printf("process_eps done\n");

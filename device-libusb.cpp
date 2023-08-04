@@ -292,7 +292,6 @@ void send_data(uint8_t endpoint, uint8_t attributes, uint8_t *dataptr,
 void receive_data(uint8_t endpoint, uint8_t attributes, uint16_t maxPacketSize,
 			uint8_t **dataptr, int *length, int timeout) {
 	int result = LIBUSB_SUCCESS;
-	timeout = 0;
 
 	int attempt = 0;
 	switch (attributes & USB_ENDPOINT_XFERTYPE_MASK) {
@@ -323,7 +322,7 @@ void receive_data(uint8_t endpoint, uint8_t attributes, uint16_t maxPacketSize,
 		break;
 	}
 
-	if (result != LIBUSB_SUCCESS) {
+	if (result != LIBUSB_SUCCESS && result != LIBUSB_ERROR_TIMEOUT) {
 		fprintf(stderr, "Transfer error receiving on EP%02x: %s\n",
 				endpoint, libusb_strerror((libusb_error)result));
 	}
