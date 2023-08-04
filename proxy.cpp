@@ -123,8 +123,18 @@ void injection(struct usb_raw_transfer_io &io, struct usb_endpoint_descriptor ep
 		}
 		else if(rule_type == RuleType::RaspberryPiGpio)
 		{
-			bool is_button_pressed = (digitalRead(rule["gpio_index"].asUInt()) == LOW);
-			if(!is_button_pressed)
+			auto gpio_on = rule["gpio"]["on"];
+			const bool are_all_required_on = std::all_of(gpio_on.begin(), gpio_on.end(), [](Json::Value gpio_index){
+				return (digitalRead(gpio_index.asUInt()) == LOW);
+			});
+
+			auto gpio_off = rule["gpio"]["off"];
+			const bool are_all_required_off = std::all_of(gpio_off.begin(), gpio_off.end(), [](Json::Value gpio_index){
+				return (digitalRead(gpio_index.asUInt()) != LOW);
+			});
+
+			bool is_condition_met = are_all_required_on && are_all_required_off;
+			if(!is_condition_met)
 			{
 				continue;
 			}
@@ -147,7 +157,7 @@ void injection(struct usb_raw_transfer_io &io, struct usb_endpoint_descriptor ep
 					continue;
 				}
 
-				printf("GPIO %u signal detected, modifying byte %d\n", rule["gpio_index"].asUInt(), index);
+				//printf("GPIO %s signal detected, modifying byte %d\n", rule["gpio"].asString().c_str(), index);
 
 				switch(replacement_type) {
 				case ByteReplacementType::Replace: {
@@ -389,15 +399,22 @@ void process_eps(int fd, int config, int interface, int altsetting) {
 		if (injection_type != RuleType::RaspberryPiGpio)
 			continue;
 
-		const unsigned int gpio_index = rule["gpio_index"].asUInt();
+		auto gpio_on = rule["gpio"]["on"];
+		std::for_each(gpio_on.begin(), gpio_on.end(), [](Json::Value gpio_index){
+			used_gpio_pins.insert(gpio_index.asUInt());
+		});
 
-		pinMode(gpio_index, INPUT);
-		pullUpDnControl(gpio_index, PUD_UP);
-
-		printf("wiringPi: activated pin %d as input\n", gpio_index);
-
-		used_gpio_pins.insert(gpio_index);
+		auto gpio_off = rule["gpio"]["off"];
+		std::for_each(gpio_off.begin(), gpio_off.end(), [](Json::Value gpio_index){
+			used_gpio_pins.insert(gpio_index.asUInt());
+		});
 	}
+
+	std::for_each(used_gpio_pins.begin(), used_gpio_pins.end(), [](unsigned int gpio_index){ 
+		pinMode(gpio_index, INPUT);
+		pullUpDnControl(gpio_index, PUD_UP); 
+		printf("wiringPi: activated pin %d as input\n", gpio_index);
+	});
 
 	printf("process_eps done\n");
 }
